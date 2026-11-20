@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cuadrante de Recomposición Corporal</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-dark: #07131d;
+      --card-bg: #0c1d2b;
+      --card-border: #163247;
+      --accent-turquoise: #2dd4bf;
+      --accent-blue: #38bdf8;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      color: #e2e8f0;
+    }
+
+    .card-panel {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+    }
+
+    .glow-turquoise {
+      box-shadow: 0 0 24px rgba(45, 212, 191, 0.14);
+    }
+
+    /* Personalización de inputs date en modo oscuro */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.85) sepia(0.3) saturate(4) hue-rotate(135deg);
+      cursor: pointer;
+    }
+
+    /* Barra de desplazamiento personalizada */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #07131d;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #163247;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2dd4bf;
+    }
+  </style>
+</head>
+<body class="p-3 sm:p-6 md:p-8 min-h-screen antialiased">
+
+  <!-- Notificación flotante (Toast) -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 hidden transform transition-all duration-300 translate-y-4 opacity-0">
+    <div class="bg-[#0c1d2b] border border-[#2dd4bf] text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3">
+      <div id="toastIcon" class="w-8 h-8 rounded-full bg-[#2dd4bf]/20 text-[#2dd4bf] flex items-center justify-center">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <div>
+        <p id="toastTitle" class="text-sm font-bold text-[#2dd4bf]">Guardado correctamente</p>
+        <p id="toastMessage" class="text-xs text-slate-300">Los datos se han actualizado</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación Personalizado (Sin alert/confirm nativos) -->
+  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div class="card-panel max-w-md w-full p-6 rounded-3xl shadow-2xl border border-[#2dd4bf]/40 space-y-5">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl shrink-0">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 id="confirmTitle" class="text-lg font-bold text-white">Confirmar acción</h3>
+          <p id="confirmSubtitle" class="text-xs text-slate-400">Esta operación modificará tus registros actuales</p>
+        </div>
+      </div>
+      <p id="confirmText" class="text-sm text-slate-300 leading-relaxed">
+        ¿Estás seguro de que deseas continuar?
+      </p>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button id="btnCancelModal" type="button" class="px-4 py-2.5 rounded-xl bg-[#07131d] hover:bg-slate-800 text-slate-300 text-sm font-semibold border border-[#163247] transition cursor-pointer">
+          Cancelar
+        </button>
+        <button id="btnConfirmModal" type="button" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg transition cursor-pointer">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- CABECERA Y BARRA DE HERRAMIENTAS DE GUARDADO -->
+    <header class="card-panel p-5 sm:p-7 rounded-3xl shadow-2xl relative overflow-hidden border-l-8 border-l-[#2dd4bf]">
+      <div class="absolute -right-12 -top-12 w-64 h-64 bg-[#2dd4bf]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 relative z-10">
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-3 py-1 bg-[#2dd4bf]/15 text-[#2dd4bf] text-xs font-bold uppercase tracking-wider rounded-full border border-[#2dd4bf]/30">
+              App Interactiva
+            </span>
+            <span id="badgeCount" class="px-3 py-1 bg-[#38bdf8]/15 text-[#38bdf8] text-xs font-bold uppercase tracking-wider rounded-full border border-[#38bdf8]/30 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#2dd4bf] animate-pulse"></span> 12 Registros Guardados
+            </span>
+            <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-[11px] font-semibold rounded-full border border-emerald-500/20 flex items-center gap-1">
+              <i class="fa-solid fa-database text-[10px]"></i> Autoguardado activo
+            </span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <i class="fa-solid fa-chart-line text-[#2dd4bf]"></i>
+            CUADRANTE DE RECOMPOSICIÓN CORPORAL
+          </h1>
+          <p id="headerDateRange" class="text-slate-400 text-sm sm:text-base">
+            Evolución de Peso, Cintura y Rendimiento (<strong class="text-slate-200">02/09/2026</strong> - <strong class="text-[#2dd4bf]">18/11/2026</strong>)
+          </p>
+        </div>
+
+        <!-- Barra de herramientas: Guardar HTML actualizado, Exportar JSON, Importar JSON, Restaurar -->
+        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onclick="descargarHTMLActualizado()"
+            class="cursor-pointer bg-gradient-to-r from-[#2dd4bf] to-[#14b8a6] hover:from-[#5eead4] hover:to-[#2dd4bf] text-[#07131d] font-extrabold px-4 py-3 rounded-2xl shadow-lg shadow-[#2dd4bf]/20 transition-all flex items-center gap-2.5 text-xs sm:text-sm active:scale-95"
+            title="Descarga un archivo .html autónomo con todos tus datos actuales incrustados"
+          >
+            <i class="fa-solid fa-file-arrow-down text-base"></i>
+            <span>Guardar copia HTML actualizada</span>
+          </button>
+
+          <button
+            type="button"
+            onclick="exportarJSON()"
+            class="cursor-pointer bg-[#07131d] hover:bg-[#163247]/70 text-[#38bdf8] border border-[#38bdf8]/40 font-semibold px-3.5 py-3 rounded-2xl transition flex items-center gap-2 text-xs sm:text-sm active:scale-95"
+            title="Exportar copia de seguridad en formato JSON"
+          >
+            <i class="fa-solid fa-download"></i>
+            <span>Exportar JSON</span>
+          </button>
+
+          <label
+            for="importJsonInput"
+            class="cursor-pointer bg-[#07131d] hover:bg-[#163247]/70 text-slate-200 border border-[#163247] hover:border-[#2dd4bf]/50 font-semibold px-3.5 py-3 rounded-2xl transition flex items-center gap-2 text-xs sm:text-sm active:scale-95"
+            title="Cargar copia de seguridad desde un archivo JSON"
+          >
+            <i class="fa-solid fa-upload text-[#2dd4bf]"></i>
+            <span>Importar JSON</span>
+          </label>
+          <input id="importJsonInput" type="file" accept=".json,application/json" class="hidden" onchange="importarJSON(event)">
+
+          <button
+            type="button"
+            onclick="solicitarRestauracion()"
+            class="cursor-pointer bg-[#07131d] hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 border border-[#163247] hover:border-rose-500/40 font-semibold px-3.5 py-3 rounded-2xl transition flex items-center gap-2 text-xs sm:text-sm active:scale-95"
+            title="Restaurar los 12 registros iniciales originales"
+          >
+            <i class="fa-solid fa-rotate-left"></i>
+            <span class="hidden sm:inline">Restaurar</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- FORMULARIO INTERACTIVO PARA AÑADIR / EDITAR REGISTRO -->
+    <section id="formSection" class="card-panel p-5 sm:p-6 rounded-3xl shadow-xl border border-[#2dd4bf]/30 glow-turquoise">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <h2 id="formTitle" class="text-lg font-bold text-white flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-[#2dd4bf]/20 text-[#2dd4bf] flex items-center justify-center">
+            <i class="fa-solid fa-plus"></i>
+          </span>
+          <span>Añadir Nuevo Registro Semanal</span>
+        </h2>
+        <span id="formHint" class="text-xs text-slate-400">
+          Fecha sugerida automáticamente (+7 días respecto a la última medición)
+        </span>
+      </div>
+
+      <form id="recordForm" onsubmit="guardarRegistro(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+        <input type="hidden" id="editIndex" value="-1">
+
+        <!-- Fecha -->
+        <div class="lg:col-span-3 space-y-1.5">
+          <label for="inputFecha" class="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            Fecha de medición
+          </label>
+          <input
+            type="date"
+            id="inputFecha"
+            required
+            class="w-full bg-[#07131d] border border-[#163247] focus:border-[#2dd4bf] focus:outline-none text-white rounded-xl px-3.5 py-2.5 text-sm font-mono transition"
+          >
+        </div>
+
+        <!-- Peso (kg) -->
+        <div class="lg:col-span-2 space-y-1.5">
+          <label for="inputPeso" class="block text-xs font-bold uppercase tracking-wider text-[#38bdf8]">
+            Peso (kg)
+          </label>
+          <input
+            type="number"
+            id="inputPeso"
+            step="0.1"
+            min="30"
+            max="250"
+            placeholder="Ej. 86.8"
+            required
+            class="w-full bg-[#07131d] border border-[#163247] focus:border-[#38bdf8] focus:outline-none text-white rounded-xl px-3.5 py-2.5 text-sm font-semibold transition"
+          >
+        </div>
+
+        <!-- Cintura (cm) -->
+        <div class="lg:col-span-2 space-y-1.5">
+          <label for="inputCintura" class="block text-xs font-bold uppercase tracking-wider text-[#2dd4bf]">
+            Cintura (cm)
+          </label>
+          <input
+            type="number"
+            id="inputCintura"
+            step="0.1"
+            min="40"
+            max="200"
+            placeholder="Ej. 88.0"
+            required
+            class="w-full bg-[#07131d] border border-[#163247] focus:border-[#2dd4bf] focus:outline-none text-white rounded-xl px-3.5 py-2.5 text-sm font-semibold transition"
+          >
+        </div>
+
+        <!-- Rendimiento -->
+        <div class="lg:col-span-3 space-y-1.5">
+          <label for="selectRendimiento" class="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            Rendimiento / Intensidad
+          </label>
+          <div class="space-y-2">
+            <select
+              id="selectRendimiento"
+              onchange="toggleCustomRendimiento()"
+              class="w-full bg-[#07131d] border border-[#163247] focus:border-[#2dd4bf] focus:outline-none text-white rounded-xl px-3.5 py-2.5 text-sm transition"
+            >
+              <option value="Subiendo">Subiendo</option>
+              <option value="Subiendo un poco">Subiendo un poco</option>
+              <option value="Subiendo bastante más">Subiendo bastante más</option>
+              <option value="Rendimiento máximo">Rendimiento máximo</option>
+              <option value="Estable">Estable</option>
+              <option value="Bajando / Fatiga">Bajando / Fatiga</option>
+              <option value="custom">Personalizado...</option>
+            </select>
+            <input
+              type="text"
+              id="inputCustomRendimiento"
+              placeholder="Escribe tu nota de rendimiento..."
+              class="hidden w-full bg-[#07131d] border border-[#2dd4bf] focus:outline-none text-white rounded-xl px-3.5 py-2 text-sm transition"
+            >
+          </div>
+        </div>
+
+        <!-- Botones Acción Formulario -->
+        <div class="lg:col-span-2 flex items-center gap-2">
+          <button
+            type="submit"
+            id="btnSubmitForm"
+            class="w-full cursor-pointer bg-[#2dd4bf] hover:bg-[#5eead4] text-[#07131d] font-extrabold py-2.5 px-4 rounded-xl shadow-lg shadow-[#2dd4bf]/20 transition flex items-center justify-center gap-2 text-sm active:scale-95"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span id="btnSubmitText">Guardar</span>
+          </button>
+          <button
+            type="button"
+            id="btnCancelEdit"
+            onclick="cancelarEdicion()"
+            class="hidden cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 px-3 rounded-xl border border-slate-600 transition text-sm"
+            title="Cancelar edición"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- TARJETAS KPI DINÁMICAS EN TIEMPO REAL -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- KPI 1: Peso Actual -->
+      <div class="card-panel p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <span id="kpiPesoLabel" class="text-xs font-bold uppercase tracking-wider text-slate-400">Peso Actual</span>
+          <span class="p-2.5 bg-[#38bdf8]/15 text-[#38bdf8] rounded-xl">
+            <i class="fa-solid fa-weight-scale text-lg"></i>
+          </span>
+        </div>
+        <div class="mt-4">
+          <div class="flex items-baseline gap-2">
+            <span id="kpiPesoActual" class="text-3xl font-extrabold text-white">87,2</span>
+            <span class="text-slate-400 font-semibold">kg</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+            <span id="kpiPesoInicial">Inicial: 90,0 kg</span>
+            <span id="kpiPesoCambio" class="px-2 py-0.5 rounded bg-[#38bdf8]/15 text-[#38bdf8] font-bold">-2,8 kg</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- KPI 2: Cintura Actual -->
+      <div class="card-panel p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <span id="kpiCinturaLabel" class="text-xs font-bold uppercase tracking-wider text-slate-400">Cintura Actual</span>
+          <span class="p-2.5 bg-[#2dd4bf]/15 text-[#2dd4bf] rounded-xl">
+            <i class="fa-solid fa-ruler-horizontal text-lg"></i>
+          </span>
+        </div>
+        <div class="mt-4">
+          <div class="flex items-baseline gap-2">
+            <span id="kpiCinturaActual" class="text-3xl font-extrabold text-[#2dd4bf]">88,5</span>
+            <span class="text-slate-400 font-semibold">cm</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+            <span id="kpiCinturaInicial">Inicial: 97,5 cm</span>
+            <span id="kpiCinturaCambio" class="px-2 py-0.5 rounded bg-[#2dd4bf]/15 text-[#2dd4bf] font-bold">-9,0 cm</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- KPI 3: Variación Última Semana -->
+      <div class="card-panel p-5 rounded-2xl flex flex-col justify-between border-[#2dd4bf]/40">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-bold uppercase tracking-wider text-[#2dd4bf]">Variación Última Semana</span>
+          <span id="kpiSemanaRango" class="px-2.5 py-1 bg-[#2dd4bf]/20 text-[#2dd4bf] text-xs font-bold rounded-lg">11/11 → 18/11</span>
+        </div>
+        <div class="mt-4 space-y-1.5">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-400">Peso semanal:</span>
+            <span id="kpiVarPesoSemanal" class="font-bold text-[#38bdf8]">-0,6 kg</span>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-400">Cintura semanal:</span>
+            <span id="kpiVarCinturaSemanal" class="font-bold text-[#2dd4bf]">-0,5 cm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 4: Rendimiento -->
+      <div class="card-panel p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Estado Rendimiento</span>
+          <span class="p-2.5 bg-[#2dd4bf]/15 text-[#2dd4bf] rounded-xl">
+            <i class="fa-solid fa-bolt text-lg"></i>
+          </span>
+        </div>
+        <div class="mt-4">
+          <div class="flex items-center gap-2">
+            <span id="kpiRendimientoActual" class="text-2xl sm:text-3xl font-extrabold text-[#2dd4bf] truncate">Subiendo</span>
+            <i id="kpiRendimientoIcon" class="fa-solid fa-arrow-trend-up text-[#2dd4bf] text-xl shrink-0"></i>
+          </div>
+          <p id="kpiRendimientoSub" class="text-xs text-slate-400 mt-2">Última sesión registrada</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOQUE CENTRAL: TABLA DE REGISTROS EDITABLE Y GRÁFICA COMPARATIVA -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Tabla Completa con Acciones Editar / Eliminar -->
+      <div class="card-panel p-5 sm:p-6 rounded-3xl lg:col-span-6 shadow-xl flex flex-col">
+        <div class="flex items-center justify-between border-b border-[#163247] pb-4 mb-4">
+          <div>
+            <h2 id="tableHeaderTitle" class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-table-list text-[#2dd4bf]"></i>
+              Registros Semanales (12 Mediciones)
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Ordenados cronológicamente — Pulsa editar o eliminar en cada fila</p>
+          </div>
+          <span id="tableDateTag" class="text-xs font-mono bg-[#07131d] text-[#2dd4bf] px-3 py-1 rounded-lg border border-[#163247] shrink-0">
+            02/09 - 18/11
+          </span>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border border-[#163247] flex-1 max-h-[440px]">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-[#07131d] text-[#2dd4bf] text-xs uppercase border-b border-[#163247] sticky top-0 z-10">
+              <tr>
+                <th class="py-3 px-3 font-bold">#</th>
+                <th class="py-3 px-3 font-bold">Fecha</th>
+                <th class="py-3 px-3 font-bold">Peso</th>
+                <th class="py-3 px-3 font-bold">Cintura</th>
+                <th class="py-3 px-3 font-bold">Rendimiento</th>
+                <th class="py-3 px-3 font-bold text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-[#163247]/70">
+              <!-- Filas dinámicas -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Gráfica de Doble Eje (Chart.js) -->
+      <div class="card-panel p-5 sm:p-6 rounded-3xl lg:col-span-6 shadow-xl flex flex-col justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#163247] pb-4 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-chart-area text-[#38bdf8]"></i>
+              Evolución Comparativa
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Curva dinámica de Peso (kg) vs Cintura (cm)</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs bg-[#07131d] px-3 py-1.5 rounded-xl border border-[#163247]">
+            <span class="flex items-center gap-1.5 font-semibold text-[#38bdf8]">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#38bdf8]"></span> Peso (kg)
+            </span>
+            <span class="flex items-center gap-1.5 font-semibold text-[#2dd4bf]">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#2dd4bf]"></span> Cintura (cm)
+            </span>
+          </div>
+        </div>
+
+        <div class="relative h-[400px] w-full">
+          <canvas id="evolutionChart"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- BLOQUE INFERIOR: CRONOLOGÍA DE RENDIMIENTO Y ANÁLISIS DINÁMICO -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Cronología de Rendimiento -->
+      <div class="card-panel p-5 sm:p-6 rounded-3xl lg:col-span-6 shadow-xl">
+        <div class="border-b border-[#163247] pb-4 mb-4">
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-timeline text-[#2dd4bf]"></i>
+            Cronología de Rendimiento
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Progresión cualitativa semana a semana</p>
+        </div>
+        <div id="timelineContainer" class="space-y-2.5 max-h-[300px] overflow-y-auto pr-2">
+          <!-- Items dinámicos -->
+        </div>
+      </div>
+
+      <!-- Análisis Automático Dinámico -->
+      <div class="card-panel p-6 sm:p-8 rounded-3xl lg:col-span-6 shadow-xl border-[#2dd4bf]/30 bg-gradient-to-br from-[#0c1d2b] to-[#09242b] flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="p-3 bg-[#2dd4bf]/15 text-[#2dd4bf] rounded-2xl">
+              <i class="fa-solid fa-clipboard-check text-xl"></i>
+            </div>
+            <div>
+              <h2 id="analysisTitle" class="text-lg font-bold text-white">Resumen de Progreso (18/11/2026)</h2>
+              <p class="text-xs text-[#2dd4bf] font-semibold">Evaluación Automática de Recomposición Corporal</p>
+            </div>
+          </div>
+
+          <div id="dynamicAnalysisContent" class="space-y-3 text-sm text-slate-300 leading-relaxed">
+            <!-- Contenido calculado automáticamente -->
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-[#163247] flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+          <span>Sincronizado automáticamente en este navegador</span>
+          <button type="button" onclick="descargarHTMLActualizado()" class="text-[#2dd4bf] hover:underline font-semibold flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-file-arrow-down"></i> Guardar copia HTML con estos datos
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'cuadrante_recomposicion_registros_v1';
+
+    // Datos iniciales precargados (12 mediciones verificadas del 02/09/2026 al 18/11/2026)
+    const DATOS_INICIALES = [
+      { fecha: '02/09/2026', peso: 90.0, cintura: 97.5, rendimiento: 'Estable' },
+      { fecha: '09/09/2026', peso: 90.3, cintura: 96.0, rendimiento: 'Estable' },
+      { fecha: '16/09/2026', peso: 90.0, cintura: 95.5, rendimiento: 'Subiendo un poco' },
+      { fecha: '23/09/2026', peso: 89.3, cintura: 94.5, rendimiento: 'Subiendo un poco' },
+      { fecha: '30/09/2026', peso: 88.8, cintura: 93.5, rendimiento: 'Subiendo un poco' },
+      { fecha: '07/10/2026', peso: 87.7, cintura: 92.5, rendimiento: 'Subiendo bastante más' },
+      { fecha: '14/10/2026', peso: 88.1, cintura: 91.5, rendimiento: 'Subiendo' },
+      { fecha: '21/10/2026', peso: 87.2, cintura: 90.5, rendimiento: 'Subiendo' },
+      { fecha: '28/10/2026', peso: 87.0, cintura: 90.0, rendimiento: 'Subiendo' },
+      { fecha: '04/11/2026', peso: 86.9, cintura: 89.5, rendimiento: 'Subiendo' },
+      { fecha: '11/11/2026', peso: 87.8, cintura: 89.0, rendimiento: 'Subiendo' },
+      { fecha: '18/11/2026', peso: 87.2, cintura: 88.5, rendimiento: 'Subiendo' }
+    ];
+
+    let registros = [];
+    let chartInstance = null;
+    let confirmCallback = null;
+
+    // Utilidades de formato de fecha DD/MM/AAAA <-> YYYY-MM-DD
+    function ddmmyyyyToISO(fechaStr) {
+      const [d, m, y] = fechaStr.split('/');
+      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    function isoToDDMMYYYY(isoStr) {
+      const [y, m, d] = isoStr.split('-');
+      return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    }
+
+    function parseFechaTimestamp(fechaStr) {
+      const [d, m, y] = fechaStr.split('/').map(Number);
+      return new Date(y, m - 1, d).getTime();
+    }
+
+    function sumarDiasISO(fechaDDMMYYYY, dias) {
+      const [d, m, y] = fechaDDMMYYYY.split('/').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      dateObj.setDate(dateObj.getDate() + dias);
+      const yy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      return `${yy}-${mm}-${dd}`;
+    }
+
+    function formatNum(num, decimals = 1) {
+      return Number(num).toFixed(decimals).replace('.', ',');
+    }
+
+    function formatSigned(num, unit = '') {
+      const val = Number(num);
+      const sign = val > 0 ? '+' : '';
+      return `${sign}${val.toFixed(1).replace('.', ',')}${unit ? ' ' + unit : ''}`;
+    }
+
+    // Ordenar registros cronológicamente siempre
+    function ordenarRegistros() {
+      registros.sort((a, b) => parseFechaTimestamp(a.fecha) - parseFechaTimestamp(b.fecha));
+    }
+
+    // Cargar datos desde localStorage o inicializar con DATOS_INICIALES
+    function cargarDatos() {
+      try {
+        const guardados = localStorage.getItem(STORAGE_KEY);
+        if (guardados) {
+          const parsed = JSON.parse(guardados);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            registros = parsed;
+            ordenarRegistros();
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Error leyendo localStorage:', e);
+      }
+      registros = JSON.parse(JSON.stringify(DATOS_INICIALES));
+      ordenarRegistros();
+      persistirLocalStorage();
+    }
+
+    function persistirLocalStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+      } catch (e) {
+        console.error('Error guardando en localStorage:', e);
+      }
+    }
+
+    // Sugerir fecha (+7 días respecto al último registro)
+    function prepararFechaSugerida() {
+      if (registros.length > 0) {
+        const ultimaFecha = registros[registros.length - 1].fecha;
+        document.getElementById('inputFecha').value = sumarDiasISO(ultimaFecha, 7);
+      } else {
+        const hoy = new Date();
+        document.getElementById('inputFecha').value = hoy.toISOString().split('T')[0];
+      }
+    }
+
+    function toggleCustomRendimiento() {
+      const select = document.getElementById('selectRendimiento');
+      const customInput = document.getElementById('inputCustomRendimiento');
+      if (select.value === 'custom') {
+        customInput.classList.remove('hidden');
+        customInput.required = true;
+        customInput.focus();
+      } else {
+        customInput.classList.add('hidden');
+        customInput.required = false;
+      }
+    }
+
+    // Guardar nuevo registro o actualizar existente
+    function guardarRegistro(event) {
+      event.preventDefault();
+
+      const editIdx = parseInt(document.getElementById('editIndex').value, 10);
+      const isoFecha = document.getElementById('inputFecha').value;
+      const peso = parseFloat(document.getElementById('inputPeso').value);
+      const cintura = parseFloat(document.getElementById('inputCintura').value);
+      const selectVal = document.getElementById('selectRendimiento').value;
+      const customVal = document.getElementById('inputCustomRendimiento').value.trim();
+
+      if (!isoFecha || isNaN(peso) || isNaN(cintura)) return;
+
+      const rendimiento = selectVal === 'custom' && customVal ? customVal : selectVal;
+      const fechaFormateada = isoToDDMMYYYY(isoFecha);
+
+      const nuevoObj = {
+        fecha: fechaFormateada,
+        peso: Math.round(peso * 10) / 10,
+        cintura: Math.round(cintura * 10) / 10,
+        rendimiento
+      };
+
+      if (editIdx >= 0 && editIdx < registros.length) {
+        registros[editIdx] = nuevoObj;
+        mostrarToast('Registro actualizado', `${fechaFormateada} modificado correctamente`);
+      } else {
+        // Si ya existe exactamente esa fecha, actualizarla o añadirla
+        const existenteIdx = registros.findIndex(r => r.fecha === fechaFormateada);
+        if (existenteIdx !== -1) {
+          registros[existenteIdx] = nuevoObj;
+          mostrarToast('Fecha actualizada', `Se actualizó el registro del ${fechaFormateada}`);
+        } else {
+          registros.push(nuevoObj);
+          mostrarToast('Registro guardado', `${fechaFormateada} añadido al cuadrante`);
+        }
+      }
+
+      ordenarRegistros();
+      persistirLocalStorage();
+      cancelarEdicion();
+      actualizarTodo();
+    }
+
+    // Cargar un registro en el formulario para editarlo
+    function editarRegistro(index) {
+      const reg = registros[index];
+      if (!reg) return;
+
+      document.getElementById('editIndex').value = index;
+      document.getElementById('inputFecha').value = ddmmyyyyToISO(reg.fecha);
+      document.getElementById('inputPeso').value = reg.peso;
+      document.getElementById('inputCintura').value = reg.cintura;
+
+      const select = document.getElementById('selectRendimiento');
+      const customInput = document.getElementById('inputCustomRendimiento');
+      const opciones = Array.from(select.options).map(o => o.value);
+
+      if (opciones.includes(reg.rendimiento) && reg.rendimiento !== 'custom') {
+        select.value = reg.rendimiento;
+        customInput.classList.add('hidden');
+        customInput.required = false;
+      } else {
+        select.value = 'custom';
+        customInput.value = reg.rendimiento;
+        customInput.classList.remove('hidden');
+        customInput.required = true;
+      }
+
+      document.getElementById('formTitle').innerHTML = `
+        <span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+          <i class="fa-solid fa-pen"></i>
+        </span>
+        <span>Editando Registro #${index + 1} (${reg.fecha})</span>
+      `;
+      document.getElementById('formHint').textContent = 'Modifica los valores y pulsa Actualizar';
+      document.getElementById('btnSubmitText').textContent = 'Actualizar';
+      document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+      document.getElementById('formSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function cancelarEdicion() {
+      document.getElementById('editIndex').value = '-1';
+      document.getElementById('recordForm').reset();
+      document.getElementById('selectRendimiento').value = 'Subiendo';
+      document.getElementById('inputCustomRendimiento').classList.add('hidden');
+      document.getElementById('inputCustomRendimiento').required = false;
+
+      document.getElementById('formTitle').innerHTML = `
+        <span class="w-8 h-8 rounded-xl bg-[#2dd4bf]/20 text-[#2dd4bf] flex items-center justify-center">
+          <i class="fa-solid fa-plus"></i>
+        </span>
+        <span>Añadir Nuevo Registro Semanal</span>
+      `;
+      document.getElementById('formHint').textContent = 'Fecha sugerida automáticamente (+7 días respecto a la última medición)';
+      document.getElementById('btnSubmitText').textContent = 'Guardar';
+      document.getElementById('btnCancelEdit').classList.add('hidden');
+
+      prepararFechaSugerida();
+    }
+
+    // Solicitar confirmación antes de eliminar fila
+    function solicitarEliminarRegistro(index) {
+      if (registros.length <= 1) {
+        mostrarToast('Acción no permitida', 'Debe haber al menos 1 registro en el cuadrante', true);
+        return;
+      }
+      const reg = registros[index];
+      abrirModalConfirmacion(
+        'Eliminar registro',
+        `Medición #${index + 1} — ${reg.fecha}`,
+        `¿Seguro que quieres borrar el registro del ${reg.fecha} (${formatNum(reg.peso)} kg / ${formatNum(reg.cintura)} cm)?`,
+        () => {
+          registros.splice(index, 1);
+          persistirLocalStorage();
+          if (parseInt(document.getElementById('editIndex').value, 10) === index) {
+            cancelarEdicion();
+          }
+          actualizarTodo();
+          mostrarToast('Registro eliminado', `Se borró la medición del ${reg.fecha}`);
+        }
+      );
+    }
+
+    // Restaurar datos originales (12 registros)
+    function solicitarRestauracion() {
+      abrirModalConfirmacion(
+        'Restaurar datos originales',
+        'Volver a los 12 registros base (02/09/2026 - 18/11/2026)',
+        'Se reemplazarán los cambios actuales por los 12 registros semanales originales. ¿Deseas continuar?',
+        () => {
+          registros = JSON.parse(JSON.stringify(DATOS_INICIALES));
+          ordenarRegistros();
+          persistirLocalStorage();
+          cancelarEdicion();
+          actualizarTodo();
+          mostrarToast('Datos restaurados', 'Se han cargado los 12 registros originales');
+        }
+      );
+    }
+
+    // Modal de confirmación personalizado
+    function abrirModalConfirmacion(titulo, subtitulo, texto, onConfirm) {
+      document.getElementById('confirmTitle').textContent = titulo;
+      document.getElementById('confirmSubtitle').textContent = subtitulo;
+      document.getElementById('confirmText').textContent = texto;
+      confirmCallback = onConfirm;
+
+      const modal = document.getElementById('confirmModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function cerrarModalConfirmacion() {
+      const modal = document.getElementById('confirmModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      confirmCallback = null;
+    }
+
+    document.getElementById('btnCancelModal').addEventListener('click', cerrarModalConfirmacion);
+    document.getElementById('btnConfirmModal').addEventListener('click', () => {
+      if (typeof confirmCallback === 'function') confirmCallback();
+      cerrarModalConfirmacion();
+    });
+
+    // Actualizar KPIs dinámicos
+    function actualizarKPIs() {
+      const total = registros.length;
+      const primero = registros[0];
+      const ultimo = registros[total - 1];
+      const penultimo = total > 1 ? registros[total - 2] : primero;
+
+      // Cabecera
+      document.getElementById('badgeCount').innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-[#2dd4bf] animate-pulse"></span> ${total} ${total === 1 ? 'Registro Guardado' : 'Registros Guardados'}
+      `;
+      document.getElementById('headerDateRange').innerHTML = `
+        Evolución de Peso, Cintura y Rendimiento (<strong class="text-slate-200">${primero.fecha}</strong> - <strong class="text-[#2dd4bf]">${ultimo.fecha}</strong>)
+      `;
+      document.getElementById('tableHeaderTitle').innerHTML = `
+        <i class="fa-solid fa-table-list text-[#2dd4bf]"></i>
+        Registros Semanales (${total} ${total === 1 ? 'Medición' : 'Mediciones'})
+      `;
+      document.getElementById('tableDateTag').textContent = `${primero.fecha.slice(0, 5)} - ${ultimo.fecha.slice(0, 5)}`;
+
+      // Peso Actual y cambio total
+      const cambioPesoTotal = ultimo.peso - primero.peso;
+      document.getElementById('kpiPesoLabel').textContent = `Peso Actual (${ultimo.fecha})`;
+      document.getElementById('kpiPesoActual').textContent = formatNum(ultimo.peso);
+      document.getElementById('kpiPesoInicial').textContent = `Inicial: ${formatNum(primero.peso)} kg`;
+      const elPesoCambio = document.getElementById('kpiPesoCambio');
+      elPesoCambio.textContent = formatSigned(cambioPesoTotal, 'kg');
+      elPesoCambio.className = `px-2 py-0.5 rounded font-bold ${
+        cambioPesoTotal <= 0 ? 'bg-[#38bdf8]/15 text-[#38bdf8]' : 'bg-amber-500/15 text-amber-400'
+      }`;
+
+      // Cintura Actual y cambio total
+      const cambioCinturaTotal = ultimo.cintura - primero.cintura;
+      document.getElementById('kpiCinturaLabel').textContent = `Cintura Actual (${ultimo.fecha})`;
+      document.getElementById('kpiCinturaActual').textContent = formatNum(ultimo.cintura);
+      document.getElementById('kpiCinturaInicial').textContent = `Inicial: ${formatNum(primero.cintura)} cm`;
+      const elCinturaCambio = document.getElementById('kpiCinturaCambio');
+      elCinturaCambio.textContent = formatSigned(cambioCinturaTotal, 'cm');
+      elCinturaCambio.className = `px-2 py-0.5 rounded font-bold ${
+        cambioCinturaTotal <= 0 ? 'bg-[#2dd4bf]/15 text-[#2dd4bf]' : 'bg-amber-500/15 text-amber-400'
+      }`;
+
+      // Variación última semana
+      const varPesoSem = ultimo.peso - penultimo.peso;
+      const varCinturaSem = ultimo.cintura - penultimo.cintura;
+      document.getElementById('kpiSemanaRango').textContent = total > 1
+        ? `${penultimo.fecha.slice(0, 5)} → ${ultimo.fecha.slice(0, 5)}`
+        : ultimo.fecha;
+
+      const elVarPesoSem = document.getElementById('kpiVarPesoSemanal');
+      elVarPesoSem.textContent = total > 1 ? formatSigned(varPesoSem, 'kg') : 'Base (0,0 kg)';
+      elVarPesoSem.className = `font-bold ${varPesoSem <= 0 ? 'text-[#38bdf8]' : 'text-amber-400'}`;
+
+      const elVarCinturaSem = document.getElementById('kpiVarCinturaSemanal');
+      elVarCinturaSem.textContent = total > 1 ? formatSigned(varCinturaSem, 'cm') : 'Base (0,0 cm)';
+      elVarCinturaSem.className = `font-bold ${varCinturaSem <= 0 ? 'text-[#2dd4bf]' : 'text-amber-400'}`;
+
+      // Rendimiento actual
+      document.getElementById('kpiRendimientoActual').textContent = ultimo.rendimiento;
+      document.getElementById('kpiRendimientoSub').textContent = `Registrado el ${ultimo.fecha}`;
+      const iconEl = document.getElementById('kpiRendimientoIcon');
+      if (ultimo.rendimiento.toLowerCase().includes('bajando') || ultimo.rendimiento.toLowerCase().includes('fatiga')) {
+        iconEl.className = 'fa-solid fa-arrow-trend-down text-amber-400 text-xl shrink-0';
+      } else if (ultimo.rendimiento.toLowerCase().includes('estable')) {
+        iconEl.className = 'fa-solid fa-minus text-[#38bdf8] text-xl shrink-0';
+      } else {
+        iconEl.className = 'fa-solid fa-arrow-trend-up text-[#2dd4bf] text-xl shrink-0';
+      }
+    }
+
+    // Renderizar Tabla Semanal
+    function renderizarTabla() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      registros.forEach((reg, idx) => {
+        const esUltimo = idx === registros.length - 1;
+        const tr = document.createElement('tr');
+        tr.className = esUltimo
+          ? 'bg-[#2dd4bf]/15 border-l-4 border-l-[#2dd4bf] font-semibold'
+          : 'hover:bg-[#163247]/40 transition-colors';
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono text-xs ${esUltimo ? 'text-[#2dd4bf] font-bold' : 'text-slate-400'}">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-mono text-xs whitespace-nowrap ${esUltimo ? 'text-white font-bold' : 'text-slate-200'}">
+            ${reg.fecha} ${esUltimo ? '<span class="ml-1 px-1.5 py-0.5 text-[10px] bg-[#2dd4bf] text-[#07131d] rounded font-extrabold uppercase">Último</span>' : ''}
+          </td>
+          <td class="py-2.5 px-3 font-semibold text-[#38bdf8] whitespace-nowrap">${formatNum(reg.peso)} kg</td>
+          <td class="py-2.5 px-3 font-semibold text-[#2dd4bf] whitespace-nowrap">${formatNum(reg.cintura)} cm</td>
+          <td class="py-2.5 px-3">
+            <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium border ${
+              esUltimo
+                ? 'bg-[#2dd4bf] text-[#07131d] border-[#2dd4bf] font-bold'
+                : 'bg-[#2dd4bf]/10 text-[#2dd4bf] border-[#2dd4bf]/30'
+            }">
+              ${reg.rendimiento}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-right whitespace-nowrap">
+            <div class="inline-flex items-center gap-1.5">
+              <button
+                type="button"
+                onclick="editarRegistro(${idx})"
+                class="cursor-pointer p-1.5 rounded-lg bg-[#07131d] hover:bg-[#38bdf8]/20 text-slate-300 hover:text-[#38bdf8] border border-[#163247] transition"
+                title="Editar registro"
+              >
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button
+                type="button"
+                onclick="solicitarEliminarRegistro(${idx})"
+                class="cursor-pointer p-1.5 rounded-lg bg-[#07131d] hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-[#163247] transition"
+                title="Eliminar registro"
+              >
+                <i class="fa-solid fa-trash text-xs"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Renderizar Cronología de Rendimiento
+    function renderizarCronologia() {
+      const container = document.getElementById('timelineContainer');
+      container.innerHTML = '';
+
+      registros.forEach((reg, idx) => {
+        const esUltimo = idx === registros.length - 1;
+        const item = document.createElement('div');
+        item.className = `flex items-center justify-between p-2.5 rounded-xl border ${
+          esUltimo
+            ? 'bg-[#2dd4bf]/15 border-[#2dd4bf] shadow-md'
+            : 'bg-[#07131d]/70 border-[#163247]'
+        }`;
+
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="w-2.5 h-2.5 rounded-full ${esUltimo ? 'bg-[#2dd4bf] animate-ping' : 'bg-[#2dd4bf]/60'}"></span>
+            <div>
+              <span class="text-xs font-mono font-bold ${esUltimo ? 'text-[#2dd4bf]' : 'text-slate-300'}">Sem ${idx + 1}</span>
+              <span class="text-xs text-slate-400 ml-2">${reg.fecha}</span>
+            </div>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-lg font-medium ${
+            esUltimo
+              ? 'bg-[#2dd4bf] text-[#07131d] font-bold'
+              : 'bg-[#163247]/70 text-[#2dd4bf]'
+          }">
+            ${reg.rendimiento}
+          </span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Actualizar Análisis Dinámico Automático
+    function actualizarAnalisisDinamico() {
+      const total = registros.length;
+      const primero = registros[0];
+      const ultimo = registros[total - 1];
+      const penultimo = total > 1 ? registros[total - 2] : primero;
+
+      const cambioPesoTotal = ultimo.peso - primero.peso;
+      const cambioCinturaTotal = ultimo.cintura - primero.cintura;
+      const varPesoSem = ultimo.peso - penultimo.peso;
+      const varCinturaSem = ultimo.cintura - penultimo.cintura;
+
+      document.getElementById('analysisTitle').textContent = `Resumen de Progreso (${ultimo.fecha})`;
+
+      let diagnosticoSemanal = '';
+      if (total === 1) {
+        diagnosticoSemanal = `Has establecido tu punto de partida el <strong>${primero.fecha}</strong> con <strong>${formatNum(primero.peso)} kg</strong> y <strong>${formatNum(primero.cintura)} cm</strong> de cintura.`;
+      } else if (varCinturaSem < 0 && varPesoSem <= 0) {
+        diagnosticoSemanal = `Excelente semana: reduces tanto peso (<strong>${formatSigned(varPesoSem, 'kg')}</strong>) como perímetro abdominal (<strong>${formatSigned(varCinturaSem, 'cm')}</strong>) manteniendo el rendimiento en <strong>${ultimo.rendimiento}</strong>.`;
+      } else if (varCinturaSem < 0 && varPesoSem > 0) {
+        diagnosticoSemanal = `Indicador clásico de <strong>recomposición corporal</strong>: tu cintura baja (<strong>${formatSigned(varCinturaSem, 'cm')}</strong>) mientras el peso sube ligeramente (<strong>${formatSigned(varPesoSem, 'kg')}</strong>), reflejando retención o ganancia de masa magra y glucógeno muscular.`;
+      } else if (varCinturaSem === 0 && varPesoSem < 0) {
+        diagnosticoSemanal = `Descenso neto en báscula (<strong>${formatSigned(varPesoSem, 'kg')}</strong>) con cintura estable en <strong>${formatNum(ultimo.cintura)} cm</strong>.`;
+      } else {
+        diagnosticoSemanal = `Semana de consolidación: peso en <strong>${formatNum(ultimo.peso)} kg</strong> (${formatSigned(varPesoSem, 'kg')}) y cintura en <strong>${formatNum(ultimo.cintura)} cm</strong> (${formatSigned(varCinturaSem, 'cm')}).`;
+      }
+
+      document.getElementById('dynamicAnalysisContent').innerHTML = `
+        <p>
+          Desde el inicio (<strong>${primero.fecha}</strong>) hasta la última medición (<strong>${ultimo.fecha}</strong>), acumulas <strong class="text-[#2dd4bf]">${total} ${total === 1 ? 'registro' : 'registros'}</strong>:
+        </p>
+        <ul class="space-y-2.5 mt-3">
+          <li class="flex items-start gap-2.5 bg-[#07131d]/70 p-3 rounded-xl border border-[#163247]">
+            <i class="fa-solid fa-circle-check text-[#38bdf8] mt-1"></i>
+            <span>
+              <strong class="text-[#38bdf8]">Evolución acumulada de peso:</strong> ${formatSigned(cambioPesoTotal, 'kg')} (de ${formatNum(primero.peso)} kg a <strong>${formatNum(ultimo.peso)} kg</strong>).
+            </span>
+          </li>
+          <li class="flex items-start gap-2.5 bg-[#07131d]/70 p-3 rounded-xl border border-[#163247]">
+            <i class="fa-solid fa-circle-check text-[#2dd4bf] mt-1"></i>
+            <span>
+              <strong class="text-[#2dd4bf]">Evolución acumulada de cintura:</strong> ${formatSigned(cambioCinturaTotal, 'cm')} (de ${formatNum(primero.cintura)} cm a <strong>${formatNum(ultimo.cintura)} cm</strong>).
+            </span>
+          </li>
+          <li class="flex items-start gap-2.5 bg-[#07131d]/70 p-3 rounded-xl border border-[#163247]">
+            <i class="fa-solid fa-bolt text-[#2dd4bf] mt-1"></i>
+            <span>${diagnosticoSemanal}</span>
+          </li>
+        </ul>
+      `;
+    }
+
+    // Renderizar o actualizar Gráfica Chart.js
+    function renderizarGrafica() {
+      const ctx = document.getElementById('evolutionChart').getContext('2d');
+      const etiquetas = registros.map(r => r.fecha.slice(0, 5));
+      const datosPeso = registros.map(r => r.peso);
+      const datosCintura = registros.map(r => r.cintura);
+
+      const minPeso = Math.floor(Math.min(...datosPeso) - 1.5);
+      const maxPeso = Math.ceil(Math.max(...datosPeso) + 1.5);
+      const minCintura = Math.floor(Math.min(...datosCintura) - 1.5);
+      const maxCintura = Math.ceil(Math.max(...datosCintura) + 1.5);
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: etiquetas,
+          datasets: [
+            {
+              label: 'Peso (kg)',
+              data: datosPeso,
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.25,
+              pointRadius: registros.map((_, i) => i === registros.length - 1 ? 7 : 4),
+              pointBackgroundColor: registros.map((_, i) => i === registros.length - 1 ? '#ffffff' : '#38bdf8'),
+              pointBorderColor: '#38bdf8',
+              yAxisID: 'yPeso'
+            },
+            {
+              label: 'Cintura (cm)',
+              data: datosCintura,
+              borderColor: '#2dd4bf',
+              backgroundColor: 'rgba(45, 212, 191, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.25,
+              pointRadius: registros.map((_, i) => i === registros.length - 1 ? 7 : 4),
+              pointBackgroundColor: registros.map((_, i) => i === registros.length - 1 ? '#ffffff' : '#2dd4bf'),
+              pointBorderColor: '#2dd4bf',
+              yAxisID: 'yCintura'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#07131d',
+              titleColor: '#2dd4bf',
+              bodyColor: '#e2e8f0',
+              borderColor: '#163247',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                title: function(items) {
+                  const idx = items[0].dataIndex;
+                  return `Sem ${idx + 1} — ${registros[idx].fecha}`;
+                },
+                label: function(context) {
+                  const val = formatNum(context.parsed.y);
+                  const unit = context.datasetIndex === 0 ? ' kg' : ' cm';
+                  return ` ${context.dataset.label}: ${val}${unit}`;
+                },
+                afterBody: function(items) {
+                  const idx = items[0].dataIndex;
+                  return `\n Rendimiento: ${registros[idx].rendimiento}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#163247' },
+              ticks: { color: '#94a3b8', font: { size: 11 } }
+            },
+            yPeso: {
+              type: 'linear',
+              position: 'left',
+              min: minPeso,
+              max: maxPeso,
+              title: {
+                display: true,
+                text: 'Peso (kg)',
+                color: '#38bdf8',
+                font: { weight: 'bold', size: 12 }
+              },
+              grid: { color: '#163247' },
+              ticks: { color: '#38bdf8' }
+            },
+            yCintura: {
+              type: 'linear',
+              position: 'right',
+              min: minCintura,
+              max: maxCintura,
+              title: {
+                display: true,
+                text: 'Cintura (cm)',
+                color: '#2dd4bf',
+                font: { weight: 'bold', size: 12 }
+              },
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#2dd4bf' }
+            }
+          }
+        }
+      });
+    }
+
+    function actualizarTodo() {
+      actualizarKPIs();
+      renderizarTabla();
+      renderizarCronologia();
+      actualizarAnalisisDinamico();
+      renderizarGrafica();
+    }
+
+    // Exportar JSON
+    function exportarJSON() {
+      try {
+        const jsonStr = JSON.stringify(registros, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const ultimaFecha = registros[registros.length - 1].fecha.replace(/\//g, '_');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `recomposicion_datos_${ultimaFecha}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        mostrarToast('JSON exportado', `Copia de seguridad con ${registros.length} registros`);
+      } catch (e) {
+        mostrarToast('Error al exportar', 'No se pudo generar el archivo JSON', true);
+      }
+    }
+
+    // Importar JSON
+    function importarJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('Formato inválido');
+          }
+          const validados = data.filter(item =>
+            item && typeof item.fecha === 'string' && !isNaN(Number(item.peso)) && !isNaN(Number(item.cintura))
+          ).map(item => ({
+            fecha: item.fecha,
+            peso: Math.round(Number(item.peso) * 10) / 10,
+            cintura: Math.round(Number(item.cintura) * 10) / 10,
+            rendimiento: item.rendimiento || 'Estable'
+          }));
+
+          if (validados.length === 0) {
+            throw new Error('Sin registros válidos');
+          }
+
+          registros = validados;
+          ordenarRegistros();
+          persistirLocalStorage();
+          cancelarEdicion();
+          actualizarTodo();
+          mostrarToast('Datos importados', `Se han cargado ${registros.length} registros desde el JSON`);
+        } catch (err) {
+          mostrarToast('Error al importar', 'El archivo JSON no tiene un formato válido', true);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Descargar archivo HTML autónomo incrustando los datos actuales en DATOS_INICIALES
+    function descargarHTMLActualizado() {
+      try {
+        // Clonar el documento limpio sin estados temporales de Chart.js en el canvas
+        const rawHtml = document.documentElement.outerHTML;
+        const datosSerializados = JSON.stringify(registros, null, 6);
+
+        // Reemplazar el bloque DATOS_INICIALES para que el HTML descargado abra ya con los datos nuevos por defecto
+        const updatedHtml = '<!DOCTYPE html>\n' + rawHtml.replace(
+          /const DATOS_INICIALES = \[[\s\S]*?\];/,
+          `const DATOS_INICIALES = ${datosSerializados};`
+        );
+
+        const blob = new Blob([updatedHtml], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const ultimaFecha = registros[registros.length - 1].fecha.replace(/\//g, '_');
+        const filename = `cuadrante_recomposicion_${ultimaFecha}.html`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        mostrarToast('Copia HTML guardada', filename);
+      } catch (err) {
+        console.error(err);
+        mostrarToast('Error al guardar HTML', 'No se pudo generar el archivo', true);
+      }
+    }
+
+    function mostrarToast(titulo, mensaje, esError = false) {
+      const toast = document.getElementById('toastNotification');
+      const titleEl = document.getElementById('toastTitle');
+      const msgEl = document.getElementById('toastMessage');
+      const iconEl = document.getElementById('toastIcon');
+
+      titleEl.textContent = titulo;
+      msgEl.textContent = mensaje;
+
+      if (esError) {
+        titleEl.className = 'text-sm font-bold text-rose-400';
+        iconEl.className = 'w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center';
+        iconEl.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      } else {
+        titleEl.className = 'text-sm font-bold text-[#2dd4bf]';
+        iconEl.className = 'w-8 h-8 rounded-full bg-[#2dd4bf]/20 text-[#2dd4bf] flex items-center justify-center';
+        iconEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+      }
+
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-4', 'opacity-0');
+      }, 10);
+
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+      }, 3500);
+    }
+
+    // Inicialización al cargar la página
+    window.addEventListener('DOMContentLoaded', () => {
+      cargarDatos();
+      prepararFechaSugerida();
+      actualizarTodo();
+    });
+  </script>
+</body>
+</html>
